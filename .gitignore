@@ -1,0 +1,32 @@
+# === Build artifacts ===
+/target/
+/out/
+/build/
+
+# === IDE files ===
+.idea/
+*.iml
+.vscode/
+.eclipse/
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+
+# === Data directory (IMPORTANT) ===
+# Contains sensitive and/or deployment-specific resources
+/data/
+/output/
+
+# === Temporary files ===
+*.tmp
+*.bak
+*.swp
+
+# === Environment / secrets ===
+.env
+*.key
+*.pem
