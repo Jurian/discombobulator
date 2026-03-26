@@ -14,7 +14,7 @@ experimentation.
 
 The project is structured into two main packages:
 
-### `cmi.hva.nl.parse`
+### `nl.hva.cmi.lessen.discombobulator.parse`
 Provides data models and parsers for:
 - chat logs and messages,
 - users and metadata,
@@ -23,7 +23,7 @@ Provides data models and parsers for:
 This package **does not perform anonymization**. Parsed objects may still
 contain raw personal data.
 
-### `cmi.hva.nl.anon`
+### `nl.hva.cmi.lessen.discombobulator.anon`
 Implements rule-based pseudonymization:
 - text-level pseudonymization pipelines,
 - dataset-level copying with synthetic identifiers,
