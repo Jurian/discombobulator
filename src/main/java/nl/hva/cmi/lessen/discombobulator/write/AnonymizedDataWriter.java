@@ -68,7 +68,7 @@ public final class AnonymizedDataWriter {
         Map<String, Object> msg = new LinkedHashMap<>();
         msg.put("datetime", m.datetime.toString());
         //msg.put("userId", m.user.id);
-        msg.put("direction", m.type.name());
+        msg.put("direction", m.type != null ? m.type.name() : null);
         msg.put("content", m.content);
         return msg;
     }

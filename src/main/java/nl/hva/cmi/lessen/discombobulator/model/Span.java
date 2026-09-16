@@ -1,6 +1,5 @@
 package nl.hva.cmi.lessen.discombobulator.model;
 
-import nl.hva.cmi.lessen.discombobulator.rule.TextAnonymizationRule;
 import org.ahocorasick.trie.Emit;
 
 import java.util.ArrayList;
@@ -10,11 +9,6 @@ import java.util.regex.Matcher;
 /**
  * {@code Span} represents a labeled region within a text by character offsets.
  *
- * <p>
- * Spans are used by {@link TextAnonymizationRule} implementations to describe
- * detected text segments (e.g., identifiers such as names, postal codes, or URLs)
- * that should be replaced by a placeholder label.
- * </p>
  *
  * <p>
  * A span is defined by a start index (inclusive) and an end index (exclusive),
@@ -57,6 +51,10 @@ public class Span {
      */
     public String getLabel() {
         return this.label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
     }
 
     /**
@@ -183,23 +181,6 @@ public class Span {
         this.endExclusive = Math.max(endExclusive, span.endExclusive);
         this.label = label;
         this.size += span.size;
-    }
-
-
-
-    /**
-     * Flattens multiple span lists and consolidates nearby/overlapping spans.
-     *
-     * @param spanLists        iterable of span lists to merge and consolidate
-     * @param maxSpanDistance  maximum allowed gap (in characters) between spans to merge
-     * @return a consolidated list of spans
-     */
-    public static List<Span> consolidateNearbySpans(Iterable<List<Span>> spanLists, int maxSpanDistance) {
-        List<Span> merged = new ArrayList<>();
-        for(List<Span> spanList : spanLists) {
-            merged.addAll(spanList);
-        }
-        return consolidateNearbySpans(merged, maxSpanDistance);
     }
 
     /**

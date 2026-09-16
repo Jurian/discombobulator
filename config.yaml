@@ -1,37 +1,9 @@
-rules:
-  email:
-    type: regexRule
-    label: "[EMAIL]"
-    pattern: >
-      [A-Za-z0-9._%+-]+
-      \s?@\s?
-      [A-Za-z0-9.-]+
-      \.
-      [A-Za-z]{2,}
+settings:
+  # threads: 4   # defaults to availableProcessors - 1
 
-  file:
-    type: regexRule
-    label: "[BESTAND]"
-    pattern: >
-      \b
-      [\w.-]+
-      \.
-      (png|jpg|jpeg|gif|pdf|txt|docx?|xlsx?|pptx?)
-      \b
-    options:
-      ignoreCase: true
-
-  iban:
-    type: regexRule
-    label: "[IBAN]"
-    pattern: >
-      [A-Z]{2}
-      \s?\d{2}
-      \s?
-      (?:\s?[A-Z0-9]{2,4}){3,7}
-
+detectors:
   phone:
-    type: regexRule
+    type: regex
     label: "[TELEFOONNUMMER]"
     pattern: >
       \+?
@@ -40,8 +12,42 @@ rules:
       \s?
       [0-9]{7,14}
 
-  trackandtrace:
-    type: regexRule
+  email:
+    type: regex
+    label: "[EMAIL]"
+    pattern: >
+      [A-Za-z0-9._%+-]+
+      \s?@\s?
+      [A-Za-z0-9.-]+
+      \.
+      [A-Za-z]{2,}
+
+  iban:
+    type: regex
+    label: "[IBAN]"
+    pattern: >
+      [A-Z]{2}
+      \s?\d{2}
+      \s?
+      (?:\s?[A-Z0-9]{2,4}){3,7}
+
+  url:
+    type: regex
+    label: "[LINK]"
+    pattern: >
+      (https?://)?
+      (www\.)?
+      [-a-zA-Z0-9@:%._+~#=]{1,256}
+      \.
+      [a-zA-Z0-9()]{1,12}
+      \b
+      ([-a-zA-Z0-9()@:%_+.~#?&//=]*)
+    options:
+      ignoreCase: true
+      unicodeCharacterClass: true
+
+  trackAndTrace:
+    type: regex
     label: "[TRACK&TRACE]"
     pattern: >
       (
@@ -56,76 +62,55 @@ rules:
         KB[0-9]{6,9}
       )
 
-  url:
-    type: regexRule
-    label: "[LINK]"
+  file:
+    type: regex
+    label: "[BESTAND]"
     pattern: >
-      (https?://)?
-      (www\.)?
-      [-a-zA-Z0-9@:%._+~#=]{1,256}
-      \.
-      [a-zA-Z0-9()]{1,12}
       \b
-      ([-a-zA-Z0-9()@:%_+.~#?&//=]*)
+      [\w.-]+
+      \.
+      (png|jpg|jpeg|gif|pdf|txt|docx?|xlsx?|pptx?)
+      \b
     options:
       ignoreCase: true
-      unicodeCharacterClass: true
-      multiline: false
-      dotAll: false
-      comments: false
+
+  greetingNames:
+    type: greeting
+    labelTo: "[KLANT]"
+    labelFrom: "[WERKNEMER]"
 
   employeeNames:
-    type: trieRule
+    type: trie
     label: "[WERKNEMER]"
     file: "data/werknemernamen.txt"
     options:
       ignoreOverlaps: false
       wholeWords: false
       ignoreCase: false
-      ignoreFile: ["data/ignore.txt","data/brandnames.txt"]
-
-  greetingNames:
-    type: greetingRule
-    pattern: >
-      (^|[«>"“”]\s*)
-      (hé|hee|hi|hello|hey|hoi|hoihoi|geachte|hallo|dag|
-       goedendag|goedemorgen|goedemiddag|goedenavond|beste|dear)
-      \s+
-      ([A-Z][\p{L}''-]{2,})
-      \b
-      ([.,!]+)?
-    labelTo: "[KLANT]"
-    labelFrom: "[WERKNEMER]"
-    options:
-      ignoreCase: false
-      unicodeCase: false
-      multiline: false
-      dotAll: false
-      unicodeCharacterClass: true
-      comments: false
+      ignoreFiles: ["data/ignore.txt", "data/brandnames.txt"]
 
   customerNames:
-    type: trieRule
+    type: trie
     label: "[KLANT]"
     file: "data/klantnamen.txt"
     options:
       ignoreOverlaps: true
       wholeWords: true
       ignoreCase: false
-      ignoreFile: ["data/ignore.txt","data/brandnames.txt"]
+      ignoreFiles: ["data/ignore.txt", "data/brandnames.txt"]
 
   firstNames:
-    type: trieRule
+    type: trie
     label: "[KLANT]"
     file: "data/voornamen.txt"
     options:
       ignoreOverlaps: true
       wholeWords: true
       ignoreCase: false
-      ignoreFile: ["data/ignore.txt","data/brandnames.txt"]
+      ignoreFiles: ["data/ignore.txt", "data/brandnames.txt"]
 
   shopNames:
-    type: trieRule
+    type: trie
     label: "[WINKEL]"
     file: "data/shopnames.txt"
     options:
@@ -134,74 +119,71 @@ rules:
       ignoreCase: false
 
   familyNamesNearCustomer:
-    type: anchoredTrieRule
+    type: anchoredTrie
     label: "[KLANT]"
     file: "data/familienamen.txt"
     anchorPattern: "[KLANT]"
+    anchorMaxDistance: 5
+    anchorSide: BEFORE
     options:
-      anchorMaxDistance: 5
       ignoreOverlaps: true
       wholeWords: true
       ignoreCase: false
-      ignoreFile: ["data/ignore.txt","data/brandnames.txt"]
+      ignoreFiles: ["data/ignore.txt", "data/brandnames.txt"]
 
-  # User names = pipeline combinator
-  userNames:
-    type: pipelineRule
-    rules: [greetingNames, employeeNames, customerNames, firstNames, familyNamesNearCustomer, shopNames]
-
-  # Address detectors
-  postalCodeDetector:
-    type: regexSpanDetector
+  postalCode:
+    type: regex
     label: "[POSTCODE]"
     pattern: '\b[1-9][0-9]{3} ?(?!sa|sd|ss)[a-z]{2}\b'
     options:
       ignoreCase: true
 
-  streetDetector:
-    type: trieTailRegexSpanDetector
+  street:
+    type: trieTailRegex
     label: "[STRAAT]"
     file: "data/straatnamen.txt"
-    pattern: '^\s*([,\-–—])?\s*(\d{1,5})(\s*[-/]?\s*[A-Za-z]{1,6})?\b'
+    tailPattern: '^\s*([,\-–—])?\s*(\d{1,5})(\s*[-/]?\s*[A-Za-z]{1,6})?\b'
     options:
       ignoreOverlaps: true
       wholeWords: true
       ignoreCase: true
-      ignoreFile: ["data/ignore.txt"]
-      tailMatchMode: "START"      # ensures we only match immediately after the trie hit
-      acceptAnchorAlone:
-        enabled: true
-        minAnchorLength: 10
-        requireInitialUppercase: true
-      trimSuffixes: [" in"]
+      ignoreFiles: ["data/ignore.txt"]
 
-  placeDetector:
-    type: trieSpanDetector
+  place:
+    type: trie
     label: "[PLAATS]"
     file: "data/plaatsnamen.txt"
     options:
       ignoreOverlaps: true
       wholeWords: true
       ignoreCase: true
-      ignoreFile: ["data/ignore.txt"]
-
-  # Address = cluster combinator
-  address:
-    type: clusterReplaceRule
-    label: "[ADRES]"
-    maxSpanDistance: 10
-    detectors: [postalCodeDetector, streetDetector, placeDetector]
+      ignoreFiles: ["data/ignore.txt"]
 
 pipeline:
-  - phone
-  - email
-  - iban
-  - url
-  - track&trace
-  - file
-  - userNames
-  - address
+  - type: detect
+    detectors: [phone, email, iban, url, trackAndTrace, file]
+  - type: replace
+
+  - type: detect
+    detectors: [greetingNames, employeeNames, customerNames, firstNames, shopNames]
+  - type: replace
+
+  - type: detect
+    detectors: [familyNamesNearCustomer]
+  - type: replace
+
+  - type: detect
+    detectors: [postalCode, street, place]
+  - type: consolidate
+    label: "[ADRES]"
+    maxSpanDistance: 10
+  - type: replace
 
 input:
   file: "data/derodewinkel.txt"
-  type: "WHATSAPP"
+  type: WHATSAPP
+  groupsFile: "data/groupchats.txt"
+
+output:
+  file: "output/anonymized-chatlogs.json"
+  requireRoles: [customer]

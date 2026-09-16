@@ -37,7 +37,7 @@ public final class AnonymizedLogPrinter {
             for (ChatMessage msg : log.messages) {
                 System.out.println(
                         msg.datetime.toString() + " | "
-                                + msg.type + " | "
+                                + (msg.type != null ? msg.type : "N/A") + " | "
                                 + msg.user.id + " → "
                                 + msg.content
                 );

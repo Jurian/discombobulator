@@ -1,5 +1,7 @@
 package nl.hva.cmi.lessen.discombobulator.parse;
 
+import nl.hva.cmi.lessen.discombobulator.config.InputConfig;
+import nl.hva.cmi.lessen.discombobulator.model.ChatDataset;
 import nl.hva.cmi.lessen.discombobulator.model.ChatLog;
 import nl.hva.cmi.lessen.discombobulator.model.ChatMessage;
 import nl.hva.cmi.lessen.discombobulator.model.User;
@@ -15,7 +17,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * LogParser reads a text-based chat export and converts it into structured
+ * WhatsappParser reads a text-based chat export and converts it into structured
  * {@link ChatLog}, {@link ChatMessage}, and {@link User} objects.
  *
  * <p>The parser processes a log file line-by-line and reconstructs:
@@ -71,26 +73,42 @@ import java.util.regex.Pattern;
  * <p>This class performs no validation or error recovery beyond basic line parsing;
  * malformed input may produce incomplete logs or users.
  */
-public class LogParser implements Parser<LogParser.Result> {
+public class WhatsappParser implements Parser<ChatDataset> {
 
     /**
      * Formatter used to parse timestamp strings found in metadata lines.
      * Expected format: {@code yyyy-MM-dd HH:mm:ss}.
      */
+    private static final String MESSAGE_END =
+            "----------------------------------------------------";
+    private static final int LINE_LOG_ID   = 0;
+    private static final int LINE_METADATA = 1;
+
+    private static final String USER_NOTIFICATION = "notification";
+    private static final String ROLE_CUSTOMER  = "customer";
+    private static final String ROLE_EMPLOYEE  = "employee";
+    private static final String ROLE_SYSTEM    = "system";
+
     final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final Pattern NORMALIZE_PATTERN = Pattern.compile("\\s+");
 
-    public record Result(Map<String, User> users, Map<String, ChatLog> logs) {}
-
     private final Set<String> internalGroupChats;
 
-    public LogParser(Set<String> groupChats) {
-        this.internalGroupChats = groupChats;  // immutable
+    public WhatsappParser(Set<String> groupChats) {
+        this.internalGroupChats = groupChats;
     }
 
-    public LogParser.Result parse(String fileName) throws IOException {
+    public static ChatDataset fromConfig(InputConfig config) throws IOException {
+        Set<String> groupIds = Set.of();
+        if (config.groupsFile != null) {
+            groupIds = new TextFileParser<>(line -> line).parse(config.groupsFile);
+        }
+        return new WhatsappParser(groupIds).parse(config.file);
+    }
+
+    public ChatDataset parse(String fileName) throws IOException {
 
         /*
          * Map of all known users encountered in the log file.
@@ -125,7 +143,7 @@ public class LogParser implements Parser<LogParser.Result> {
                 line = NORMALIZE_PATTERN.matcher(line).replaceAll(" ").trim();
 
                 // End marker: finalize the current message (if any)
-                if(line.equals(ChatMessage.MESSAGE_END)) {
+                if(line.equals(MESSAGE_END)) {
 
                     if(log != null && message != null && !skipMessage) {
                         log.addMessage(message);   // Add completed message to log
@@ -142,7 +160,7 @@ public class LogParser implements Parser<LogParser.Result> {
                 // -------------------------------
                 // Line 0: ChatLog ID
                 // -------------------------------
-                if(lineCounter == ChatMessage.LINE_LOG_ID) {
+                if(lineCounter == LINE_LOG_ID) {
 
                     if(line.charAt(0) == '+') {
                         line = line.replace(" ", "");          // Normalize phone-number log IDs
@@ -156,7 +174,7 @@ public class LogParser implements Parser<LogParser.Result> {
                 // -------------------------------
                 // Line 1: Metadata (timestamp + sender)
                 // -------------------------------
-                else if(lineCounter == ChatMessage.LINE_METADATA) {
+                else if(lineCounter == LINE_METADATA) {
 
                     datetime = LocalDateTime.parse(line.substring(0, 19), formatter);  // Parse timestamp
                     line = line.substring(20);                                // Remove timestamp text
@@ -168,8 +186,8 @@ public class LogParser implements Parser<LogParser.Result> {
                     boolean isSystemMessage = false;
 
                     // Special case: system-generated notification
-                    if(line.equals(User.USER_NOTIFICATION)) {
-                        userId = User.USER_NOTIFICATION;
+                    if(line.equals(USER_NOTIFICATION)) {
+                        userId = USER_NOTIFICATION;
                         messageTo = false;
                         isSystemMessage = true;
                     } else {
@@ -230,9 +248,9 @@ public class LogParser implements Parser<LogParser.Result> {
                         if (user == null) {
                             // Create a new user entry
                             user = new User(userId);
-                            // Mark users in internal logs as employees
-                            user.isCustomer = !internalGroupChats.contains(log.id);
-                            user.isSystem = isSystemMessage;
+                            user.role = isSystemMessage             ? ROLE_SYSTEM
+                                      : internalGroupChats.contains(log.id) ? ROLE_EMPLOYEE
+                                      : ROLE_CUSTOMER;
                         }
 
                         // First appearance of this userId: fill all fields
@@ -252,7 +270,8 @@ public class LogParser implements Parser<LogParser.Result> {
                     }
                     skipMessage = isSystemMessage;
                     // Create new ChatMessage for this metadata line
-                    message = new ChatMessage(datetime, user, messageTo);
+                    message = new ChatMessage(datetime, user,
+                            messageTo ? ChatMessage.CHAT_TYPE.TO : ChatMessage.CHAT_TYPE.FROM);
                 }
 
                 // -------------------------------
@@ -260,7 +279,7 @@ public class LogParser implements Parser<LogParser.Result> {
                 // -------------------------------
                 else {
                     if(!line.isEmpty() && message != null) {
-                        message.addContent(line);   // Append message text
+                        message.content += line + " ";   // Append message text
                     }
                 }
 
@@ -268,7 +287,7 @@ public class LogParser implements Parser<LogParser.Result> {
             }
         }
 
-        return new Result(users, logs);
+        return new ChatDataset(users, logs);
     }
 }
 
